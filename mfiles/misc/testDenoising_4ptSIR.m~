@@ -1,0 +1,113 @@
+clear, close all, clc
+
+% Load ti/td
+ti = [15 15 278 1007]*1e-3;
+td = [684 4171 2730 10]*1e-3;
+nti = length(ti);
+
+% Resolution and fov
+res = 2.2;
+fov = 211;
+nimg = ceil(fov/res);
+
+% Sample params
+gamma = 42.58*2*pi;             % rad/s/uT
+
+R1w = [1.0  1.0];               % s^-1
+M0w = [1  0.1];                 % a.u.
+Rxw = 12.5;                     % = kmf
+
+R1l = [0.5  0.5];               % s^-1
+M0l = [1  0.05];                % a.u.
+Rxl = 12.5;                     % = kmf
+
+Si = [-0.95 0.83];              % effect of inversion pulse on the pools
+
+SNR = 2e2;                      % this is at thermal eq
+
+% Create phantom 1D test object at thermal eq
+indWM{1} = 1:13;
+widthLES = [10 8 6 4 2];
+widthWM = 10;
+indLES{1} = [indWM{1}(end)+1:indWM{1}(end)+widthWM];
+for ii = 2:length(widthLES)
+    indWM{ii} = [indLES{ii-1}(end)+1:indLES{ii-1}(end)+widthWM];
+    indLES{ii} = [indWM{ii}(end)+1:indWM{ii}(end)+widthLES(ii)];
+end
+indWM{ii+1} = [indLES{ii}(end)+1:nimg];
+
+MASK_WM  = zeros(nimg,1);
+MASK_WM(cell2mat(indWM)) = 1;
+
+MASK_LES  = zeros(nimg,1);
+MASK_LES(cell2mat(indLES)) = 1;
+
+% Get zmag at each ti/td (just before excitation)
+MZ_WM = signalSIR(ti,td,Rxw,R1w,M0w,Si);
+MZ_LES = signalSIR(ti,td,Rxl,R1l,M0l,Si);
+
+% Scale masks by these values to get z-mag just before excitation
+IZ_WM = MASK_WM*MZ_WM;
+IZ_LES = MASK_LES*MZ_LES;
+
+% Combine into image
+IZ = IZ_WM + IZ_LES;
+for ii = 1:nti
+    IMG(:,:,ii) = repmat(IZ(:,ii)',[nimg 1]);
+end
+IMG = abs(IMG);
+
+% Add noise
+IMGn = IMG + randn(size(IMG))/SNR;
+IMGn = abs(IMGn);
+
+% Denoise
+[IMGdn,s,p] = denoiseCV(IMGn,[11 11]);
+
+% Fit raw, noisy, and denoised data
+X0 = [0.1  1   -0.95  1];  % [pmf R1f Sf M0f]
+LB = [0    0.3 -1.05  0];
+UB = [1    3    0    10];
+
+PSRr = zeros(nimg,nimg);  R1fr = zeros(nimg,nimg);
+PSRn = zeros(nimg,nimg);  R1fn = zeros(nimg,nimg);
+PSRdn = zeros(nimg,nimg); R1fdn = zeros(nimg,nimg);
+
+for ii = 1:nimg
+    ii
+    for jj = 1:nimg
+        Xr = fitSIR_fixedkmf(ti,td,squeeze(IMG(ii,jj,:)),Si(2),X0,LB,UB,'y','n',Rxw);
+        PSRr(ii,jj) = Xr(1)*1e2;
+        R1fr(ii,jj) = Xr(2);
+        
+        Xn = fitSIR_fixedkmf(ti,td,squeeze(IMGn(ii,jj,:)),Si(2),X0,LB,UB,'y','n',Rxw);
+        PSRn(ii,jj) = Xn(1)*1e2;
+        R1fn(ii,jj) = Xn(2);
+        
+        Xdn = fitSIR_fixedkmf(ti,td,squeeze(IMGdn(ii,jj,:)),Si(2),X0,LB,UB,'y','n',Rxw);
+        PSRdn(ii,jj) = Xdn(1)*1e2;
+        R1fdn(ii,jj) = Xdn(2);
+        
+    end
+end
+
+% Show results
+figure
+imagesc(cat(2,PSRr,PSRn,PSRdn),[0 15]), axis image off, colormap(gray(266)), colorbar
+title('PSR')
+
+figure
+imagesc(cat(2,R1fr,R1fn,R1fdn),[0 1.5]), axis image off, colormap(gray(266)), colorbar
+title('R1f')
+
+% Get mean and SNR for PSR/R1f 
+mPSRr = mean(PSRr);
+
+mPSRn = mean(PSRn);
+sPSRn = std(PSRn);
+
+mPSRdn = mean(PSRdn);
+sPSRdn = std(PSRdn);
+
+figure
+plot(mPSRr,'LineWidth',3)
