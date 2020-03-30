@@ -1,0 +1,74 @@
+Index: setup.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- setup.py	(date 1584999150290)
++++ setup.py	(date 1584999150290)
+@@ -0,0 +1,12 @@
++from setuptools import setup
++
++setup(
++    name='SIR_Fitting',
++    version='1',
++    packages=[''],
++    url='https://github.com/nicksisco1932/SIR_Fitting',
++    license='',
++    author='Nicholas J. Sisco, PhD',
++    author_email='nicholas.sisco@barrowneuro.org',
++    description=''
++)
+Index: Testing_file.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Testing_file.py	(revision 975715a405c99654d358c82a24bfd097a3e0437b)
++++ Testing_file.py	(date 1584999194310)
+@@ -4,6 +4,11 @@
+ import numpy as np
+ from lmfit import minimize, Parameters
+ 
++# TODO: is the data being indexed properly in the final data.
++# TODO: send this to Richard.
++# TODO: Clean up code
++# TODO: Could do  this in a generator statement
++
+ X1 = []
+ Y1 = []
+ guesses = []
+@@ -24,16 +29,17 @@
+     plots = csv.reader(csvfile, delimiter=',')
+     for col in plots:
+         guesses.append(col)
+-with open('estimated_saturated_fraction.txt', 'r') as csvfile:
++# with open('estimated_saturated_fraction.txt', 'r') as csvfile:
++with open('estimated_saturated_fraction_800Lines.txt', 'r') as csvfile:
+     plots = csv.reader(csvfile, delimiter=',')
+     for row in plots:
+         SMV.append(row)
+-with open('measured_signals.txt', 'r') as csvfile:
++# with open('measured_signals.txt', 'r') as csvfile:
++with open('measured_signals_800Lines.txt', 'r') as csvfile:
+     plots = csv.reader(csvfile, delimiter=',')
+     for col in plots:
+         sigv.append(col)
+ 
+-
+ xdata = X1[0]
+ ydata = Y1[0]  # named wrong
+ 
+@@ -163,12 +169,10 @@
+     # p = work(i-1)
+     # final_data = np.array(p)
+     # np.save('temp_data.txt',np.asarray(p))
++    print('Processing has completed and your data has been saved as temp_Data.txt.gz')
+     np.savetxt('temp_Data.txt.gz', np.asarray(p))
+     # print(final_data)
+ 
+ 
+-# TODO: is the data being indexed properly in the final data.
+-# TODO: send this to Richard.
+-
+ if __name__ == '__main__':
+     main()
