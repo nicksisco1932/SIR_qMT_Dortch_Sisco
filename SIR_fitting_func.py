@@ -3,6 +3,7 @@ import multiprocessing as mp
 
 import numpy as np
 from lmfit import minimize, Parameters
+import julia
 
 # TODO: is the data being indexed properly in the final data.
 # TODO: send this to Richard.
@@ -144,6 +145,7 @@ def work(i):
     print(i)
     #TODO: I think that this could be a generator instead so that it can be called in the minimize section instead of
     # here.
+    #TODO: Use Julia
 
     params = fit_stuff(xdata, ydata, sigv[i], guesses, SMV[i])
     j = i
